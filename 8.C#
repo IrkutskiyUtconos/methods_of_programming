@@ -1,0 +1,50 @@
+using System;
+using System.Collections.Generic;
+
+class Program {
+    static string Div(int a, int b) {
+        if (b == 0) throw new DivideByZeroException();
+        return $"{a} поделить на {b} равно {a / b}";
+    }
+
+    static Func<int, int, string> SafeDivide(Func<int, int, string> original) {
+        return (a, b) => {
+            try { return original(a, b); }
+            catch (Exception ex) { return $"Ошибка: {ex.Message}"; }
+        };
+    }
+
+    static List<Dictionary<string, string>> CallLogs = new List<Dictionary<string, string>>();
+
+    static Func<int, int, string> LogCalls(Func<int, int, string> original) {
+        return (a, b) => {
+            var logEntry = new Dictionary<string, string> {
+                ["params"] = $"a={a}, b={b}",
+                ["date"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+
+            try {
+                string result = original(a, b);
+                logEntry["result"] = result;
+                CallLogs.Add(logEntry);
+                return result;
+            } catch (Exception ex) {
+                logEntry["result"] = $"Ошибка: {ex.Message}";
+                CallLogs.Add(logEntry);
+                throw;
+            }
+        };
+    }
+
+    static void Main() {
+        var safeLoggedDiv = LogCalls(SafeDivide(Div));
+
+        Console.WriteLine(safeLoggedDiv(10, 2));
+        Console.WriteLine(safeLoggedDiv(5, 0));
+
+        Console.WriteLine("\nИстория вызовов:");
+        foreach (var log in CallLogs) {
+            Console.WriteLine($"Дата: {log["date"]}, Параметры: {log["params"]}, Результат: {log["result"]}");
+        }
+    }
+}
